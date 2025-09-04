@@ -50,10 +50,11 @@ a:hover {
     color: var(--light-brown);
 }
 
+main {
+    flex-grow: 1;
+}
+
 .footer {
-    position: relative;
-    bottom: 0;
-    width: 100%;
     background-color: #f8f9fa;
 }
 

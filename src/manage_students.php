@@ -116,7 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 
 $students = $studentModel->getAll();
-$classes = $classModel->getAll();
+$classes = $classModel->getAll(); // Used for some modals, keep for now
+$allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
 ?>
 
 <h1>Manage Students</h1>
@@ -242,14 +243,7 @@ $classes = $classModel->getAll();
                         <label class="form-label">Class/Stream</label>
                         <select name="stream_id" class="form-select" required>
                             <option value="">Select a stream...</option>
-                            <?php
-                            // Re-using the variable from the batch import modal.
-                            // Ensure $allStreams is fetched if not already available.
-                            if (!isset($allStreams)) {
-                                $allStreams = $streamModel->getAllWithClass();
-                            }
-                            foreach ($allStreams as $stream):
-                            ?>
+                            <?php foreach ($allStreams as $stream): ?>
                                 <option value="<?php echo $stream['id']; ?>">
                                     <?php echo htmlspecialchars($stream['class_name'] . ' - ' . $stream['stream_name']); ?>
                                 </option>

@@ -11,7 +11,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
@@ -62,4 +62,5 @@
     </div>
 </nav>
 
-<div class="container mt-4">
+<main class="flex-shrink-0">
+    <div class="container mt-4">
