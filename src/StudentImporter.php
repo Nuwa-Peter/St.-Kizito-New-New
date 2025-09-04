@@ -38,7 +38,8 @@ class StudentImporter
             for ($row = 2; $row <= $highestRow; $row++) {
                 $firstName = $sheet->getCell('A' . $row)->getValue();
                 $lastName = $sheet->getCell('B' . $row)->getValue();
-                $lin = $sheet->getCell('C' . $row)->getValue();
+                $otherName = $sheet->getCell('C' . $row)->getValue();
+                $lin = $sheet->getCell('D' . $row)->getValue();
 
                 // Skip empty rows
                 if (empty($firstName) && empty($lastName)) {
@@ -53,7 +54,7 @@ class StudentImporter
 
                 // Create the student
                 // The create method in Student.php handles the default photo
-                if ($this->studentModel->create($firstName, $lastName, $lin, $streamId)) {
+                if ($this->studentModel->create($firstName, $lastName, $otherName, $lin, $streamId)) {
                     $importedCount++;
                 } else {
                     // This could happen if, for example, the LIN is a unique key and there's a duplicate

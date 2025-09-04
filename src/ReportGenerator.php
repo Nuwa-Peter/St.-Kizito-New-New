@@ -75,18 +75,26 @@ class ReportGenerator
         // --- 3. Build the PDF content ---
 
         // School Header
+        $logoPath = '../public/images/logo.png';
+        // Check if logo exists to avoid TCPDF error
+        if (file_exists($logoPath)) {
+            $pdf->Image($logoPath, 15, 10, 25, 0, 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+        }
+
         $pdf->SetFont('helvetica', 'B', 20);
         $pdf->Cell(0, 10, 'St. Kizito Seminary Preparatory School', 0, 1, 'C');
         $pdf->SetFont('helvetica', '', 12);
         $pdf->Cell(0, 8, 'END OF ' . strtoupper($batch['term']) . ' ' . $batch['year'] . ' REPORT', 0, 1, 'C');
-        $pdf->Ln(5);
+        $pdf->Ln(15);
 
         // Student Information
         $pdf->SetFont('helvetica', 'B', 12);
         $pdf->Cell(0, 8, 'STUDENT\'S REPORT', 0, 1, 'C');
 
         $studentPhoto = '../public/' . ($student['profile_photo_path'] ?? 'assets/images/default_avatar.png');
-        $pdf->Image($studentPhoto, 170, 40, 25, 30, '', '', 'T', false, 300, '', false, false, 0, false, false, false);
+        if (file_exists($studentPhoto)) {
+            $pdf->Image($studentPhoto, 170, 50, 25, 30, '', '', 'T', false, 300, '', false, false, 0, false, false, false);
+        }
 
         $pdf->SetFont('helvetica', '', 11);
         $pdf->Cell(30, 7, 'NAME:', 0, 0);

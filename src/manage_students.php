@@ -40,24 +40,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Handle file upload and CRUD actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['add_student', 'update_student'])) {
     $action = $_POST['action'];
     $firstName = $_POST['first_name'] ?? '';
     $lastName = $_POST['last_name'] ?? '';
+    $otherName = $_POST['other_name'] ?? '';
     $lin = $_POST['lin'] ?? '';
     $streamId = $_POST['stream_id'] ?? 0;
 
     $photoPath = null;
     // Handle file upload
     if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] == UPLOAD_ERR_OK) {
-        $uploadDir = '../public/uploads/profile_photos/';
+        $uploadDir = 'uploads/profile_photos/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
         $fileName = uniqid() . '-' . basename($_FILES['profile_photo']['name']);
         $targetPath = $uploadDir . $fileName;
         if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $targetPath)) {
-            $photoPath = 'uploads/profile_photos/' . $fileName;
+            $photoPath = $targetPath;
         } else {
             $error = "Failed to upload profile photo.";
         }
@@ -65,14 +66,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     if (!$error) {
         if ($action === 'add_student') {
-            if ($studentModel->create($firstName, $lastName, $lin, $streamId, $photoPath)) {
+            if ($studentModel->create($firstName, $lastName, $otherName, $lin, $streamId, $photoPath)) {
                 $message = "Student created successfully.";
             } else {
                 $error = "Failed to create student.";
             }
         } elseif ($action === 'update_student' && isset($_POST['student_id'])) {
             $studentId = $_POST['student_id'];
-            if ($studentModel->update($studentId, $firstName, $lastName, $lin, $streamId, $photoPath)) {
+            if ($studentModel->update($studentId, $firstName, $lastName, $otherName, $lin, $streamId, $photoPath)) {
                 $message = "Student updated successfully.";
             } else {
                 $error = "Failed to update student.";
@@ -132,7 +133,7 @@ $classes = $classModel->getAll();
                 <?php foreach ($students as $student): ?>
                 <tr>
                     <td><img src="<?php echo htmlspecialchars($student['profile_photo_path']); ?>" alt="Photo" width="50" class="rounded-circle"></td>
-                    <td><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></td>
+                    <td><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['other_name'] . ' ' . $student['last_name']); ?></td>
                     <td><?php echo htmlspecialchars($student['lin']); ?></td>
                     <td><?php echo htmlspecialchars($student['class_name']); ?></td>
                     <td><?php echo htmlspecialchars($student['stream_name']); ?></td>
@@ -140,6 +141,7 @@ $classes = $classModel->getAll();
                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editStudentModal"
                             data-student-id="<?php echo $student['id']; ?>"
                             data-first-name="<?php echo htmlspecialchars($student['first_name']); ?>"
+                            data-other-name="<?php echo htmlspecialchars($student['other_name']); ?>"
                             data-last-name="<?php echo htmlspecialchars($student['last_name']); ?>"
                             data-lin="<?php echo htmlspecialchars($student['lin']); ?>"
                             data-stream-id="<?php echo $student['stream_id']; ?>">
@@ -177,6 +179,10 @@ $classes = $classModel->getAll();
                     <div class="mb-3">
                         <label class="form-label">Last Name</label>
                         <input type="text" name="last_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Other Name (Optional)</label>
+                        <input type="text" name="other_name" class="form-control">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Learner ID (LIN)</label>
@@ -231,6 +237,10 @@ $classes = $classModel->getAll();
                         <input type="text" name="last_name" id="edit_last_name" class="form-control" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Other Name (Optional)</label>
+                        <input type="text" name="other_name" id="edit_other_name" class="form-control">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Learner ID (LIN)</label>
                         <input type="text" name="lin" id="edit_lin" class="form-control">
                     </div>
@@ -270,6 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var studentId = button.getAttribute('data-student-id');
         var firstName = button.getAttribute('data-first-name');
+        var otherName = button.getAttribute('data-other-name');
         var lastName = button.getAttribute('data-last-name');
         var lin = button.getAttribute('data-lin');
         var streamId = button.getAttribute('data-stream-id');
@@ -277,6 +288,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var modal = this;
         modal.querySelector('#edit_student_id').value = studentId;
         modal.querySelector('#edit_first_name').value = firstName;
+        modal.querySelector('#edit_other_name').value = otherName;
         modal.querySelector('#edit_last_name').value = lastName;
         modal.querySelector('#edit_lin').value = lin;
         modal.querySelector('#edit_stream_id').value = streamId;
@@ -299,15 +311,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         <label for="import_stream_id" class="form-label">Import Into Stream</label>
                         <select name="stream_id" id="import_stream_id" class="form-select" required>
                             <option value="">Select a stream...</option>
-                            <?php foreach ($classes as $class): ?>
-                                <optgroup label="<?php echo htmlspecialchars($class['name']); ?>">
-                                <?php
-                                $streams = $streamModel->getAllByClass($class['id']);
-                                foreach ($streams as $stream):
-                                ?>
-                                    <option value="<?php echo $stream['id']; ?>"><?php echo htmlspecialchars($stream['name']); ?></option>
-                                <?php endforeach; ?>
-                                </optgroup>
+                            <?php
+                            $allStreams = $streamModel->getAllWithClass();
+                            foreach ($allStreams as $stream):
+                            ?>
+                                <option value="<?php echo $stream['id']; ?>">
+                                    <?php echo htmlspecialchars($stream['class_name'] . ' - ' . $stream['stream_name']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -317,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">Upload and Import</button>
-                        <a href="public/templates/student_import_template.csv" class="btn btn-secondary" download>Download Template</a>
+                        <a href="templates/student_import_template.csv" class="btn btn-secondary" download>Download Template</a>
                     </div>
                 </form>
             </div>

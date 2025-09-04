@@ -16,6 +16,16 @@ class Stream
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getAllWithClass()
+    {
+        $sql = "SELECT s.id, s.name as stream_name, c.name as class_name
+                FROM streams s
+                JOIN classes c ON s.class_id = c.id
+                ORDER BY c.name, s.name";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function findById($id)
     {
         $stmt = $this->pdo->prepare("SELECT * FROM streams WHERE id = ?");
