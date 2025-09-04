@@ -1,1 +1,326 @@
-<?php echo '<h1>' . ucwords(str_replace('_', ' ', 'manage_students')) . '</h1>'; ?>
+<?php
+// Ensure user is logged in and is an admin or superadmin
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'superadmin'])) {
+    echo "<h1>Access Denied</h1>";
+    echo "<p>You do not have permission to view this page.</p>";
+    return;
+}
+
+require_once 'Student.php';
+require_once 'Class.php';
+require_once 'Stream.php';
+require_once 'StudentImporter.php';
+
+$studentModel = new Student($pdo);
+$classModel = new SchoolClass($pdo);
+$streamModel = new Stream($pdo);
+$importer = new StudentImporter($pdo);
+
+$message = '';
+$error = '';
+
+// Handle batch import
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'batch_import') {
+    if (isset($_FILES['student_file']) && $_FILES['student_file']['error'] == UPLOAD_ERR_OK) {
+        $streamId = $_POST['stream_id'];
+        if ($streamId) {
+            $filePath = $_FILES['student_file']['tmp_name'];
+            $result = $importer->import($filePath, $streamId);
+            if ($result['success']) {
+                $message = "Import complete. Successfully imported {$result['imported']} students. Encountered {$result['errors']} errors.";
+            } else {
+                $error = "Import failed: " . $result['message'];
+            }
+        } else {
+            $error = "Please select a stream to import the students into.";
+        }
+    } else {
+        $error = "File upload failed. Please try again.";
+    }
+}
+
+// Handle file upload and CRUD actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    $firstName = $_POST['first_name'] ?? '';
+    $lastName = $_POST['last_name'] ?? '';
+    $lin = $_POST['lin'] ?? '';
+    $streamId = $_POST['stream_id'] ?? 0;
+
+    $photoPath = null;
+    // Handle file upload
+    if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] == UPLOAD_ERR_OK) {
+        $uploadDir = '../public/uploads/profile_photos/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        $fileName = uniqid() . '-' . basename($_FILES['profile_photo']['name']);
+        $targetPath = $uploadDir . $fileName;
+        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $targetPath)) {
+            $photoPath = 'uploads/profile_photos/' . $fileName;
+        } else {
+            $error = "Failed to upload profile photo.";
+        }
+    }
+
+    if (!$error) {
+        if ($action === 'add_student') {
+            if ($studentModel->create($firstName, $lastName, $lin, $streamId, $photoPath)) {
+                $message = "Student created successfully.";
+            } else {
+                $error = "Failed to create student.";
+            }
+        } elseif ($action === 'update_student' && isset($_POST['student_id'])) {
+            $studentId = $_POST['student_id'];
+            if ($studentModel->update($studentId, $firstName, $lastName, $lin, $streamId, $photoPath)) {
+                $message = "Student updated successfully.";
+            } else {
+                $error = "Failed to update student.";
+            }
+        }
+    }
+}
+
+// Handle delete action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_student') {
+    $studentId = $_POST['student_id'];
+    if ($studentModel->delete($studentId)) {
+        $message = "Student deleted successfully.";
+    } else {
+        $error = "Failed to delete student.";
+    }
+}
+
+
+$students = $studentModel->getAll();
+$classes = $classModel->getAll();
+?>
+
+<h1>Manage Students</h1>
+<p>Add, edit, or remove student records.</p>
+
+<?php if ($message): ?><div class="alert alert-success" role="alert"><?php echo $message; ?></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger" role="alert"><?php echo $error; ?></div><?php endif; ?>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+            Add New Student
+        </button>
+    </div>
+    <div class="col-md-6 text-end">
+        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#batchImportModal">
+            Batch Import Students
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>Name</th>
+                    <th>LIN</th>
+                    <th>Class</th>
+                    <th>Stream</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($students as $student): ?>
+                <tr>
+                    <td><img src="<?php echo htmlspecialchars($student['profile_photo_path']); ?>" alt="Photo" width="50" class="rounded-circle"></td>
+                    <td><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></td>
+                    <td><?php echo htmlspecialchars($student['lin']); ?></td>
+                    <td><?php echo htmlspecialchars($student['class_name']); ?></td>
+                    <td><?php echo htmlspecialchars($student['stream_name']); ?></td>
+                    <td>
+                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editStudentModal"
+                            data-student-id="<?php echo $student['id']; ?>"
+                            data-first-name="<?php echo htmlspecialchars($student['first_name']); ?>"
+                            data-last-name="<?php echo htmlspecialchars($student['last_name']); ?>"
+                            data-lin="<?php echo htmlspecialchars($student['lin']); ?>"
+                            data-stream-id="<?php echo $student['stream_id']; ?>">
+                            Edit
+                        </button>
+                        <form action="?page=manage_students" method="post" style="display:inline;" onsubmit="return confirm('Are you sure?');">
+                            <input type="hidden" name="action" value="delete_student">
+                            <input type="hidden" name="student_id" value="<?php echo $student['id']; ?>">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="?page=manage_students" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_student">
+                    <!-- Form fields -->
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input type="text" name="first_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" name="last_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Learner ID (LIN)</label>
+                        <input type="text" name="lin" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Class/Stream</label>
+                        <select name="stream_id" class="form-select" required>
+                            <option value="">Select a stream</option>
+                            <?php foreach ($classes as $class): ?>
+                                <optgroup label="<?php echo htmlspecialchars($class['name']); ?>">
+                                <?php
+                                $streams = $streamModel->getAllByClass($class['id']);
+                                foreach ($streams as $stream):
+                                ?>
+                                    <option value="<?php echo $stream['id']; ?>"><?php echo htmlspecialchars($stream['name']); ?></option>
+                                <?php endforeach; ?>
+                                </optgroup>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Profile Photo (Optional)</label>
+                        <input type="file" name="profile_photo" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Student</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="?page=manage_students" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="update_student">
+                    <input type="hidden" name="student_id" id="edit_student_id">
+                    <!-- Form fields -->
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input type="text" name="first_name" id="edit_first_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" name="last_name" id="edit_last_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Learner ID (LIN)</label>
+                        <input type="text" name="lin" id="edit_lin" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Class/Stream</label>
+                        <select name="stream_id" id="edit_stream_id" class="form-select" required>
+                            <option value="">Select a stream</option>
+                            <?php foreach ($classes as $class): ?>
+                                <optgroup label="<?php echo htmlspecialchars($class['name']); ?>">
+                                <?php
+                                $streams = $streamModel->getAllByClass($class['id']);
+                                foreach ($streams as $stream):
+                                ?>
+                                    <option value="<?php echo $stream['id']; ?>"><?php echo htmlspecialchars($stream['name']); ?></option>
+                                <?php endforeach; ?>
+                                </optgroup>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Profile Photo (Optional)</label>
+                        <input type="file" name="profile_photo" class="form-control">
+                        <small class="form-text text-muted">Leave blank to keep the current photo.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Student</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var editStudentModal = document.getElementById('editStudentModal');
+    editStudentModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+
+        var studentId = button.getAttribute('data-student-id');
+        var firstName = button.getAttribute('data-first-name');
+        var lastName = button.getAttribute('data-last-name');
+        var lin = button.getAttribute('data-lin');
+        var streamId = button.getAttribute('data-stream-id');
+
+        var modal = this;
+        modal.querySelector('#edit_student_id').value = studentId;
+        modal.querySelector('#edit_first_name').value = firstName;
+        modal.querySelector('#edit_last_name').value = lastName;
+        modal.querySelector('#edit_lin').value = lin;
+        modal.querySelector('#edit_stream_id').value = streamId;
+    });
+});
+</script>
+
+<!-- Batch Import Modal -->
+<div class="modal fade" id="batchImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Batch Import Students</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="?page=manage_students" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="batch_import">
+                    <div class="mb-3">
+                        <label for="import_stream_id" class="form-label">Import Into Stream</label>
+                        <select name="stream_id" id="import_stream_id" class="form-select" required>
+                            <option value="">Select a stream...</option>
+                            <?php foreach ($classes as $class): ?>
+                                <optgroup label="<?php echo htmlspecialchars($class['name']); ?>">
+                                <?php
+                                $streams = $streamModel->getAllByClass($class['id']);
+                                foreach ($streams as $stream):
+                                ?>
+                                    <option value="<?php echo $stream['id']; ?>"><?php echo htmlspecialchars($stream['name']); ?></option>
+                                <?php endforeach; ?>
+                                </optgroup>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="student_file" class="form-label">Student Data File (.xlsx, .xls, .csv)</label>
+                        <input type="file" name="student_file" id="student_file" class="form-control" required accept=".xlsx,.xls,.csv">
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Upload and Import</button>
+                        <a href="public/templates/student_import_template.csv" class="btn btn-secondary" download>Download Template</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
