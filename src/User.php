@@ -16,6 +16,17 @@ class User
         return $stmt->fetch();
     }
 
+    public function getAll()
+    {
+        // Also fetch stream name for teachers
+        $sql = "SELECT u.id, u.first_name, u.last_name, u.username, u.role, u.stream_id, s.name as stream_name
+                FROM users u
+                LEFT JOIN streams s ON u.stream_id = s.id
+                ORDER BY u.role, u.last_name, u.first_name";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function create($firstName, $lastName, $username, $password, $role = 'teacher')
     {
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
@@ -30,5 +41,26 @@ class User
             return $user;
         }
         return false;
+    }
+
+    public function updateUser($id, $firstName, $lastName, $username, $role, $streamId)
+    {
+        // If the role is not 'teacher', the stream_id should be null
+        $streamId = ($role === 'teacher') ? $streamId : null;
+
+        $stmt = $this->pdo->prepare(
+            "UPDATE users SET first_name = ?, last_name = ?, username = ?, role = ?, stream_id = ? WHERE id = ?"
+        );
+        return $stmt->execute([$firstName, $lastName, $username, $role, $streamId, $id]);
+    }
+
+    public function deleteUser($id)
+    {
+        // To prevent deleting the main superadmin (user id 1)
+        if ($id == 1) {
+            return false;
+        }
+        $stmt = $this->pdo->prepare("DELETE FROM users WHERE id = ?");
+        return $stmt->execute([$id]);
     }
 }

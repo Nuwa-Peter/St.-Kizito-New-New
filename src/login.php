@@ -12,9 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $loggedInUser = $user->login($username, $password);
 
     if ($loggedInUser) {
+        // Set session variables
         $_SESSION['user_id'] = $loggedInUser['id'];
         $_SESSION['username'] = $loggedInUser['username'];
         $_SESSION['role'] = $loggedInUser['role'];
+        $_SESSION['last_activity'] = time(); // Set initial activity time
+
         header("Location: ?page=dashboard");
         exit;
     } else {
@@ -31,6 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h3>Login</h3>
         </div>
         <div class="card-body">
+            <?php if (isset($_GET['timeout'])): ?>
+                <div class="alert alert-warning">Your session has expired due to inactivity. Please log in again.</div>
+            <?php endif; ?>
             <?php if ($error): ?>
                 <div class="alert alert-danger"><?php echo $error; ?></div>
             <?php endif; ?>
