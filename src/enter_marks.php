@@ -124,8 +124,8 @@ if ($year && $term) {
     <input type="hidden" name="batch_id" value="<?php echo $batch['id']; ?>">
 
     <div class="table-responsive">
-        <table class="table table-bordered table-sm" style="font-size: 0.9em;">
-            <thead class="table-dark text-center">
+        <table class="table table-bordered table-sm" style="font-size: 0.8em;">
+            <thead class="table-dark text-center" style="font-size: 0.9em;">
                 <tr>
                     <th rowspan="2" class="align-middle">Student Name</th>
                     <?php foreach ($subjects as $subject): ?>

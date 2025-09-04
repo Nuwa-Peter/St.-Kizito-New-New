@@ -49,8 +49,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     $streamId = $_POST['stream_id'] ?? 0;
 
     $photoPath = null;
-    // Handle file upload
-    if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] == UPLOAD_ERR_OK) {
+    // Handle photo processing (prioritize base64 from webcam)
+    if (!empty($_POST['base64_photo'])) {
+        $base64img = $_POST['base64_photo'];
+        // The base64 string is in the format: data:image/png;base64,iVBORw0KGgo...
+        // We need to remove the "data:image/png;base64," part
+        $imgData = str_replace('data:image/png;base64,', '', $base64img);
+        $imgData = str_replace(' ', '+', $imgData);
+        $imgData = base64_decode($imgData);
+
+        $uploadDir = 'uploads/profile_photos/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        $fileName = uniqid() . '.png';
+        $filePath = $uploadDir . $fileName;
+
+        if (file_put_contents($filePath, $imgData)) {
+            $photoPath = $filePath;
+        } else {
+            $error = "Failed to save captured photo.";
+        }
+
+    } elseif (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] == UPLOAD_ERR_OK) {
+        // Fallback to standard file upload
         $uploadDir = 'uploads/profile_photos/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
@@ -113,6 +135,34 @@ $classes = $classModel->getAll();
         <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#batchImportModal">
             Batch Import Students
         </button>
+    </div>
+</div>
+
+<!-- Photo Capture and Crop Modal -->
+<div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Take and Crop Photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 text-center">
+                        <h6>Camera</h6>
+                        <div id="my_camera" style="width:320px; height:240px; border:1px solid black;"></div>
+                        <br>
+                        <button type="button" class="btn btn-primary" id="capture_btn">Capture Photo</button>
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <h6>Crop</h6>
+                        <div id="crop_area" style="width:320px; height:240px;"></div>
+                        <br>
+                        <button type="button" class="btn btn-success" id="crop_and_save_btn" disabled>Crop & Use This Photo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -191,22 +241,28 @@ $classes = $classModel->getAll();
                     <div class="mb-3">
                         <label class="form-label">Class/Stream</label>
                         <select name="stream_id" class="form-select" required>
-                            <option value="">Select a stream</option>
-                            <?php foreach ($classes as $class): ?>
-                                <optgroup label="<?php echo htmlspecialchars($class['name']); ?>">
-                                <?php
-                                $streams = $streamModel->getAllByClass($class['id']);
-                                foreach ($streams as $stream):
-                                ?>
-                                    <option value="<?php echo $stream['id']; ?>"><?php echo htmlspecialchars($stream['name']); ?></option>
-                                <?php endforeach; ?>
-                                </optgroup>
+                            <option value="">Select a stream...</option>
+                            <?php
+                            // Re-using the variable from the batch import modal.
+                            // Ensure $allStreams is fetched if not already available.
+                            if (!isset($allStreams)) {
+                                $allStreams = $streamModel->getAllWithClass();
+                            }
+                            foreach ($allStreams as $stream):
+                            ?>
+                                <option value="<?php echo $stream['id']; ?>">
+                                    <?php echo htmlspecialchars($stream['class_name'] . ' - ' . $stream['stream_name']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Profile Photo (Optional)</label>
-                        <input type="file" name="profile_photo" class="form-control">
+                        <label class="form-label">Profile Photo</label>
+                        <input type="file" name="profile_photo" class="form-control" id="add_profile_photo">
+                        <input type="hidden" name="base64_photo" id="add_base64_photo">
+                        <button type="button" class="btn btn-secondary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#photoModal" data-form-type="add">
+                            Take Photo
+                        </button>
                     </div>
                     <button type="submit" class="btn btn-primary">Save Student</button>
                 </form>
@@ -247,23 +303,24 @@ $classes = $classModel->getAll();
                     <div class="mb-3">
                         <label class="form-label">Class/Stream</label>
                         <select name="stream_id" id="edit_stream_id" class="form-select" required>
-                            <option value="">Select a stream</option>
-                            <?php foreach ($classes as $class): ?>
-                                <optgroup label="<?php echo htmlspecialchars($class['name']); ?>">
-                                <?php
-                                $streams = $streamModel->getAllByClass($class['id']);
-                                foreach ($streams as $stream):
-                                ?>
-                                    <option value="<?php echo $stream['id']; ?>"><?php echo htmlspecialchars($stream['name']); ?></option>
-                                <?php endforeach; ?>
-                                </optgroup>
+                            <option value="">Select a stream...</option>
+                            <?php
+                            foreach ($allStreams as $stream):
+                            ?>
+                                <option value="<?php echo $stream['id']; ?>">
+                                    <?php echo htmlspecialchars($stream['class_name'] . ' - ' . $stream['stream_name']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">New Profile Photo (Optional)</label>
-                        <input type="file" name="profile_photo" class="form-control">
-                        <small class="form-text text-muted">Leave blank to keep the current photo.</small>
+                        <label class="form-label">New Profile Photo</label>
+                        <input type="file" name="profile_photo" class="form-control" id="edit_profile_photo">
+                        <input type="hidden" name="base64_photo" id="edit_base64_photo">
+                        <button type="button" class="btn btn-secondary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#photoModal" data-form-type="edit">
+                            Take Photo
+                        </button>
+                        <small class="form-text text-muted">Leave blank or take a new photo to keep the current one.</small>
                     </div>
                     <button type="submit" class="btn btn-primary">Update Student</button>
                 </form>
@@ -292,6 +349,79 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.querySelector('#edit_last_name').value = lastName;
         modal.querySelector('#edit_lin').value = lin;
         modal.querySelector('#edit_stream_id').value = streamId;
+    });
+
+    // --- Logic for Photo Capture and Cropping ---
+    let croppie = null;
+    let photoModal = document.getElementById('photoModal');
+    let formType = 'add'; // 'add' or 'edit'
+
+    photoModal.addEventListener('show.bs.modal', function (event) {
+        // Determine if we are adding or editing
+        formType = event.relatedTarget.getAttribute('data-form-type');
+
+        // Initialize Webcam
+        Webcam.set({
+            width: 320,
+            height: 240,
+            image_format: 'jpeg',
+            jpeg_quality: 90
+        });
+        Webcam.attach('#my_camera');
+
+        // Initialize Croppie
+        let cropArea = document.getElementById('crop_area');
+        if (!croppie) {
+            croppie = new Croppie(cropArea, {
+                viewport: { width: 200, height: 200, type: 'square' },
+                boundary: { width: 300, height: 240 },
+                enableExif: true
+            });
+        }
+        document.getElementById('crop_and_save_btn').disabled = true;
+    });
+
+    photoModal.addEventListener('hide.bs.modal', function () {
+        Webcam.reset();
+        // Destroy existing croppie instance if it exists to clear the image
+        if (croppie) {
+            let cropArea = document.getElementById('crop_area');
+            cropArea.innerHTML = ''; // Clear the cropper
+            croppie = null; // Let it be re-initialized next time
+        }
+    });
+
+    document.getElementById('capture_btn').addEventListener('click', function() {
+        Webcam.snap(function(data_uri) {
+            croppie.bind({
+                url: data_uri
+            });
+            document.getElementById('crop_and_save_btn').disabled = false;
+        });
+    });
+
+    document.getElementById('crop_and_save_btn').addEventListener('click', function() {
+        croppie.result({
+            type: 'base64',
+            size: { width: 400, height: 400 },
+            format: 'png'
+        }).then(function(base64) {
+            // Put the base64 string into the correct hidden input
+            if (formType === 'add') {
+                document.getElementById('add_base64_photo').value = base64;
+                // Clear the file input to ensure base64 is used
+                document.getElementById('add_profile_photo').value = '';
+            } else {
+                document.getElementById('edit_base64_photo').value = base64;
+                document.getElementById('edit_profile_photo').value = '';
+            }
+
+            // Close the modal
+            var modalInstance = bootstrap.Modal.getInstance(photoModal);
+            modalInstance.hide();
+
+            alert('Photo captured and ready to be saved with the form.');
+        });
     });
 });
 </script>

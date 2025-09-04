@@ -81,8 +81,8 @@ class ReportGenerator
             $pdf->Image($logoPath, 15, 10, 25, 0, 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
         }
 
-        $pdf->SetFont('helvetica', 'B', 20);
-        $pdf->Cell(0, 10, 'St. Kizito Seminary Preparatory School', 0, 1, 'C');
+        $pdf->SetFont('helvetica', 'B', 16); // Adjusted font size for longer name
+        $pdf->Cell(0, 10, 'ST. KIZITO PREPARATORY SEMINARY RWEBISHURI', 0, 1, 'C');
         $pdf->SetFont('helvetica', '', 12);
         $pdf->Cell(0, 8, 'END OF ' . strtoupper($batch['term']) . ' ' . $batch['year'] . ' REPORT', 0, 1, 'C');
         $pdf->Ln(15);
