@@ -1,0 +1,16 @@
+{
+    "name": "st-kizito/report-card-system",
+    "description": "A web-based report card generation system.",
+    "type": "project",
+    "require": {
+        "phpoffice/phpspreadsheet": "^1.23",
+        "tecnickcom/tcpdf": "^6.4"
+    },
+    "authors": [
+        {
+            "name": "Jules",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "stable"
+}

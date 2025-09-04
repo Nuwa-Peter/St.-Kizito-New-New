@@ -1,0 +1,10 @@
+/* Custom styles for St. Kizito Report Card System */
+body {
+    background-color: #f8f9fa;
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
