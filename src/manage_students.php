@@ -114,9 +114,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Fetch data for display
+$classFilter = $_GET['class_filter'] ?? null;
+$streamFilter = $_GET['stream_filter'] ?? null;
 
-$students = $studentModel->getAll();
-$classes = $classModel->getAll(); // Used for some modals, keep for now
+if ($streamFilter) {
+    $students = $studentModel->getAllByStream($streamFilter);
+} elseif ($classFilter) {
+    $students = $studentModel->getAllByClass($classFilter);
+} else {
+    $students = $studentModel->getAll();
+}
+
+$classes = $classModel->getAll();
 $allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
 ?>
 
@@ -125,6 +135,37 @@ $allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
 
 <?php if ($message): ?><div class="alert alert-success" role="alert"><?php echo $message; ?></div><?php endif; ?>
 <?php if ($error): ?><div class="alert alert-danger" role="alert"><?php echo $error; ?></div><?php endif; ?>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form action="?page=manage_students" method="get" class="row g-3 align-items-end">
+            <input type="hidden" name="page" value="manage_students">
+            <div class="col-md-4">
+                <label for="class_filter" class="form-label">Filter by Class</label>
+                <select name="class_filter" id="class_filter" class="form-select">
+                    <option value="">All Classes</option>
+                    <?php foreach ($classes as $class): ?>
+                        <option value="<?php echo $class['id']; ?>" <?php echo (($_GET['class_filter'] ?? '') == $class['id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($class['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="stream_filter" class="form-label">Filter by Stream</label>
+                <select name="stream_filter" id="stream_filter" class="form-select">
+                    <option value="">All Streams</option>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">Filter Students</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <div class="row mb-4">
     <div class="col-md-6">
@@ -157,8 +198,7 @@ $allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
                     </div>
                     <div class="col-md-6 text-center">
                         <h6>Crop</h6>
-                        <div id="crop_area" style="width:320px; height:240px;"></div>
-                        <br>
+                        <div id="crop_area"></div>
                         <button type="button" class="btn btn-success" id="crop_and_save_btn" disabled>Crop & Use This Photo</button>
                     </div>
                 </div>
@@ -257,6 +297,7 @@ $allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
                         <button type="button" class="btn btn-secondary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#photoModal" data-form-type="add">
                             Take Photo
                         </button>
+                        <img src="#" id="add_photo_preview" class="photo-preview d-none" alt="New Photo Preview">
                     </div>
                     <button type="submit" class="btn btn-primary">Save Student</button>
                 </form>
@@ -314,6 +355,7 @@ $allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
                         <button type="button" class="btn btn-secondary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#photoModal" data-form-type="edit">
                             Take Photo
                         </button>
+                        <img src="#" id="edit_photo_preview" class="photo-preview d-none" alt="New Photo Preview">
                         <small class="form-text text-muted">Leave blank or take a new photo to keep the current one.</small>
                     </div>
                     <button type="submit" class="btn btn-primary">Update Student</button>
@@ -400,23 +442,72 @@ document.addEventListener('DOMContentLoaded', function () {
             size: { width: 400, height: 400 },
             format: 'png'
         }).then(function(base64) {
-            // Put the base64 string into the correct hidden input
+            // Put the base64 string into the correct hidden input and show preview
             if (formType === 'add') {
                 document.getElementById('add_base64_photo').value = base64;
+                let preview = document.getElementById('add_photo_preview');
+                preview.src = base64;
+                preview.classList.remove('d-none');
                 // Clear the file input to ensure base64 is used
                 document.getElementById('add_profile_photo').value = '';
             } else {
                 document.getElementById('edit_base64_photo').value = base64;
+                let preview = document.getElementById('edit_photo_preview');
+                preview.src = base64;
+                preview.classList.remove('d-none');
                 document.getElementById('edit_profile_photo').value = '';
             }
 
             // Close the modal
             var modalInstance = bootstrap.Modal.getInstance(photoModal);
             modalInstance.hide();
-
-            alert('Photo captured and ready to be saved with the form.');
         });
     });
+
+    // --- Logic for Filter Dropdowns ---
+    const classFilter = document.getElementById('class_filter');
+    const streamFilter = document.getElementById('stream_filter');
+    const initialStreamFilterValue = '<?php echo $_GET['stream_filter'] ?? ''; ?>';
+
+    function updateStreamFilter(classId) {
+        // Clear existing stream options
+        streamFilter.innerHTML = '<option value="">All Streams</option>';
+
+        if (!classId) {
+            return; // No class selected
+        }
+
+        // Fetch streams for the selected class
+        fetch(`?page=ajax_get_streams&class_id=${classId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                data.forEach(stream => {
+                    const option = document.createElement('option');
+                    option.value = stream.id;
+                    option.textContent = stream.name;
+                    streamFilter.appendChild(option);
+                });
+                // Set the previously selected value if it exists
+                if (initialStreamFilterValue) {
+                    streamFilter.value = initialStreamFilterValue;
+                }
+            })
+            .catch(error => console.error('Error fetching streams:', error));
+    }
+
+    classFilter.addEventListener('change', () => {
+        updateStreamFilter(classFilter.value);
+    });
+
+    // Initial population if a class is already selected on page load
+    if (classFilter.value) {
+        updateStreamFilter(classFilter.value);
+    }
+
 });
 </script>
 

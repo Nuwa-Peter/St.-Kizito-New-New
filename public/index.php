@@ -21,9 +21,9 @@ require_once '../src/database.php';
 // Basic router
 $page = $_GET['page'] ?? 'dashboard';
 
-// For raw pages like PDF generation, we don't include the layout.
-if ($page === 'generate_pdf') {
-    require_once '../src/generate_pdf.php';
+// For raw pages like PDF generation or AJAX, we don't include the layout.
+if ($page === 'generate_pdf' || $page === 'ajax_get_streams') {
+    require_once '../src/' . $page . '.php';
 } else {
     // Include header
     require_once '../templates/header.php';

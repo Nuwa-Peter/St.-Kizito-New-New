@@ -33,6 +33,17 @@ class Stream
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function findByIdWithClass($id)
+    {
+        $sql = "SELECT s.id, s.name as stream_name, c.name as class_name
+                FROM streams s
+                JOIN classes c ON s.class_id = c.id
+                WHERE s.id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function create($name, $classId)
     {
         $stmt = $this->pdo->prepare("INSERT INTO streams (name, class_id) VALUES (?, ?)");

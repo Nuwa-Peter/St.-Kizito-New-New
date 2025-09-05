@@ -22,14 +22,8 @@ $students = $studentModel->getAllByStream($teacher['stream_id']);
 // Get stream and class name for the header
 require_once 'Stream.php';
 $streamModel = new Stream($pdo);
-$streamInfo = $streamModel->getAllWithClass(); // Inefficient, but works. A findByIdWithClass would be better.
-$currentStreamName = '';
-foreach ($streamInfo as $stream) {
-    if ($stream['id'] == $teacher['stream_id']) {
-        $currentStreamName = $stream['class_name'] . ' - ' . $stream['stream_name'];
-        break;
-    }
-}
+$streamInfo = $streamModel->findByIdWithClass($teacher['stream_id']);
+$currentStreamName = $streamInfo ? ($streamInfo['class_name'] . ' - ' . $streamInfo['stream_name']) : 'Unknown Stream';
 
 ?>
 

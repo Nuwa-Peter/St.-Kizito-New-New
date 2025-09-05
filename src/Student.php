@@ -23,7 +23,7 @@ class Student
 
     public function getAllByStream($streamId)
     {
-        $sql = "SELECT s.id, s.first_name, s.last_name, s.lin, s.profile_photo_path, st.name as stream_name, c.name as class_name
+        $sql = "SELECT s.id, s.first_name, s.last_name, s.other_name, s.lin, s.profile_photo_path, st.name as stream_name, c.name as class_name
                 FROM students s
                 JOIN streams st ON s.stream_id = st.id
                 JOIN classes c ON st.class_id = c.id
@@ -31,6 +31,19 @@ class Student
                 ORDER BY s.last_name, s.first_name";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$streamId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAllByClass($classId)
+    {
+        $sql = "SELECT s.id, s.first_name, s.last_name, s.other_name, s.lin, s.profile_photo_path, st.name as stream_name, c.name as class_name
+                FROM students s
+                JOIN streams st ON s.stream_id = st.id
+                JOIN classes c ON st.class_id = c.id
+                WHERE st.class_id = ?
+                ORDER BY st.name, s.last_name, s.first_name";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$classId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
