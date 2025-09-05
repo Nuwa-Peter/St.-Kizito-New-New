@@ -62,7 +62,7 @@ class ReportGenerator
         // --- 3. Render the HTML template into a variable ---
         ob_start();
         // The 'include' will have access to all variables defined above in this method's scope
-        include 'templates/report_card_template.php';
+        include __DIR__ . '/../templates/report_card_template.php';
         $html = ob_get_clean();
 
         // --- 4. Create new PDF document ---
