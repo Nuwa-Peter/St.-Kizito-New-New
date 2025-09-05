@@ -1,7 +1,7 @@
 <?php
 /**
  * HTML template for the student report card.
- * This file is executed by ReportGenerator.php and all variables are passed into its scope.
+ * This file is executed by CustomReportGenerator.php and all variables are passed into its scope.
  * It uses basic HTML and inline CSS for maximum compatibility with TCPDF.
  */
 ?>
@@ -11,37 +11,36 @@
     <meta charset="UTF-8">
     <title>Report Card</title>
     <style>
-        body { font-family: sans-serif; font-size: 10pt; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .school-name { font-size: 18pt; font-weight: bold; }
-        .report-title { font-size: 12pt; }
-        .student-info-table { width: 100%; margin-bottom: 15px; }
-        .student-info-table td { padding: 4px; }
+        body { font-family: 'dejavusans', sans-serif; font-size: 10pt; color: #333; }
+        .header-table { width: 100%; border-bottom: 1px solid #6f4e37; padding-bottom: 5px; }
+        .school-name { font-size: 16pt; font-weight: bold; color: #6f4e37; }
+        .report-title { font-size: 11pt; font-weight: bold; }
+        .student-info-table { width: 100%; margin-top: 10px; margin-bottom: 15px; border-collapse: collapse; }
+        .student-info-table td { padding: 4px 0; }
         .scores-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .scores-table th, .scores-table td { border: 1px solid #333; padding: 5px; }
-        .scores-table th { background-color: #E0E0E0; font-weight: bold; text-align: center; }
+        .scores-table th, .scores-table td { border: 1px solid #999; padding: 6px; }
+        .scores-table th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
         .summary-table { width: 100%; }
-        .summary-table td { padding: 4px; }
-        .remarks-section { margin-top: 15px; }
+        .summary-table td { padding: 4px; font-size: 11pt; }
+        .remarks-section { margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;}
         .remarks-label { font-weight: bold; }
-        .footer-section { margin-top: 20px; }
         .text-center { text-align: center; }
         .text-bold { font-weight: bold; }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <table class="header">
+    <table class="header-table">
         <tr>
             <td style="width:20%; text-align:left;">
-                <img src="<?php echo $logoPath; ?>" width="80">
+                <img src="<?php echo $logoPath; ?>" width="70">
             </td>
-            <td style="width:60%;">
+            <td style="width:60%; text-align:center;">
                 <div class="school-name"><?php echo htmlspecialchars($schoolName); ?></div>
                 <div class="report-title">END OF <?php echo strtoupper(htmlspecialchars($batch['term'])); ?> <?php echo htmlspecialchars($batch['year']); ?> REPORT</div>
             </td>
             <td style="width:20%; text-align:right;">
-                <img src="<?php echo $studentPhotoPath; ?>" width="80">
+                <img src="<?php echo $studentPhotoPath; ?>" width="70">
             </td>
         </tr>
     </table>
@@ -62,13 +61,13 @@
     <table class="scores-table">
         <thead>
             <tr>
-                <th width="30%">SUBJECT</th>
-                <th width="12%">B.O.T (100)</th>
-                <th width="12%">M.O.T (100)</th>
-                <th width="12%">E.O.T (100)</th>
-                <th width="12%">GRADE</th>
-                <th width="12%">INITIALS</th>
-                <th width="10%">REMARK</th>
+                <th width="34%">SUBJECT</th>
+                <th width="11%">B.O.T</th>
+                <th width="11%">M.O.T</th>
+                <th width="11%">E.O.T</th>
+                <th width="11%">GRADE</th>
+                <th width="11%">INITIALS</th>
+                <th width="11%">REMARK</th>
             </tr>
         </thead>
         <tbody>
@@ -108,20 +107,9 @@
 
     <!-- Remarks -->
     <div class="remarks-section">
-        <p><span class="remarks-label">Class Teacher's Remarks:</span> <?php echo htmlspecialchars($summary['class_teacher_remarks']); ?></p>
-        <p><span class="remarks-label">Headteacher's Remarks:</span> <?php echo htmlspecialchars($summary['headteacher_remarks']); ?></p>
+        <p><span class="remarks-label">Class Teacher's Remarks:</span> <i><?php echo htmlspecialchars($summary['class_teacher_remarks']); ?></i></p>
+        <p><span class="remarks-label">Headteacher's Remarks:</span> <i><?php echo htmlspecialchars($summary['headteacher_remarks']); ?></i></p>
     </div>
 
-    <!-- Footer -->
-    <div class="footer-section">
-        <table width="100%">
-            <tr>
-                <td width="50%"><span class="text-bold">This Term Ended On:</span> <?php echo $batch['term_end_date'] ? date('d-m-Y', strtotime($batch['term_end_date'])) : 'N/A'; ?></td>
-                <td width="50%"><span class="text-bold">Next Term Begins On:</span> <?php echo $batch['next_term_begin_date'] ? date('d-m-Y', strtotime($batch['next_term_begin_date'])) : 'N/A'; ?></td>
-            </tr>
-        </table>
-        <br><br>
-        <div class="text-center text-bold"><?php echo htmlspecialchars($schoolMotto); ?></div>
-    </div>
 </body>
 </html>

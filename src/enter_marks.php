@@ -68,18 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($success) {
             $message = "Marks saved successfully!";
         }
-    } elseif ($_POST['action'] === 'update_dates' && $action_batch_id) {
-        $termEndDate = $_POST['term_end_date'];
-        $nextTermBeginDate = $_POST['next_term_begin_date'];
-        if ($batchModel->updateDates($action_batch_id, $termEndDate, $nextTermBeginDate)) {
-            $message = "Report dates updated successfully.";
-            // Re-fetch batch data to show updated dates
-            if ($batch) {
-                $batch = $batchModel->findById($action_batch_id);
-            }
-        } else {
-            $error = "Failed to update report dates.";
-        }
     }
 }
 
@@ -185,12 +173,7 @@ if ($year && $term && $stream_id_to_use) {
     $examTypes = ['BOT', 'MOT', 'EOT'];
 ?>
 <hr>
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Marks Entry for <?php echo htmlspecialchars($batch['year'] . ' - ' . $batch['term']); ?></h3>
-    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#reportDatesModal">
-        Set Report Dates
-    </button>
-</div>
+<h3>Marks Entry for <?php echo htmlspecialchars($batch['year'] . ' - ' . $batch['term']); ?></h3>
 <form action="?page=enter_marks" method="post">
     <input type="hidden" name="action" value="save_marks">
     <input type="hidden" name="year" value="<?php echo $year; ?>">
@@ -239,37 +222,4 @@ if ($year && $term && $stream_id_to_use) {
         <button type="submit" class="btn btn-success btn-lg">Save All Marks</button>
     </div>
 </form>
-
-<!-- Set Report Dates Modal -->
-<div class="modal fade" id="reportDatesModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Set Report Dates</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form action="?page=enter_marks" method="post">
-                    <input type="hidden" name="action" value="update_dates">
-                    <input type="hidden" name="batch_id" value="<?php echo $batch['id']; ?>">
-                    <input type="hidden" name="year" value="<?php echo $year; ?>">
-                    <input type="hidden" name="term" value="<?php echo $term; ?>">
-                    <?php if ($user_role === 'superadmin') {
-                        echo '<input type="hidden" name="stream_id_selector" value="' . htmlspecialchars($stream_id_to_use) . '">';
-                    } ?>
-                    <div class="mb-3">
-                        <label for="term_end_date" class="form-label">This Term Ended On:</label>
-                        <input type="date" name="term_end_date" id="modal_term_end_date" class="form-control" value="<?php echo htmlspecialchars($batch['term_end_date'] ?? ''); ?>">
-                    </div>
-                    <div class="mb-3">
-                        <label for="next_term_begin_date" class="form-label">Next Term Begins On:</label>
-                        <input type="date" name="next_term_begin_date" id="modal_next_term_begin_date" class="form-control" value="<?php echo htmlspecialchars($batch['next_term_begin_date'] ?? ''); ?>">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Dates</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?php endif; ?>

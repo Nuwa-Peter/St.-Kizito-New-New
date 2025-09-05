@@ -14,10 +14,10 @@ if (!$studentId || !$batchId) {
     die("Error: Missing required parameters.");
 }
 
-require_once 'ReportGenerator.php';
+require_once 'CustomReportGenerator.php';
 
 try {
-    $reportGenerator = new ReportGenerator($pdo);
+    $reportGenerator = new CustomReportGenerator($pdo);
     $reportGenerator->generateStudentReport($studentId, $batchId);
 } catch (Exception $e) {
     // Log the error if a logging system was in place

@@ -90,14 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
             if ($studentModel->create($firstName, $lastName, $otherName, $lin, $streamId, $photoPath)) {
                 $message = "Student created successfully.";
             } else {
-                $error = "Failed to create student.";
+                $error = "Failed to create student. A student with this LIN may already exist.";
             }
         } elseif ($action === 'update_student' && isset($_POST['student_id'])) {
             $studentId = $_POST['student_id'];
             if ($studentModel->update($studentId, $firstName, $lastName, $otherName, $lin, $streamId, $photoPath)) {
                 $message = "Student updated successfully.";
             } else {
-                $error = "Failed to update student.";
+                $error = "Failed to update student. A student with this LIN may already exist.";
             }
         }
     }

@@ -56,29 +56,46 @@ class Student
 
     public function create($firstName, $lastName, $otherName, $lin, $streamId, $photoPath = null)
     {
-        // Use a default placeholder if no photo is provided
-        $finalPhotoPath = $photoPath ?? 'assets/images/default_avatar.png';
-        $otherName = empty($otherName) ? null : $otherName;
-        $stmt = $this->pdo->prepare(
-            "INSERT INTO students (first_name, last_name, other_name, lin, stream_id, profile_photo_path) VALUES (?, ?, ?, ?, ?, ?)"
-        );
-        return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $finalPhotoPath]);
+        try {
+            $finalPhotoPath = $photoPath ?? 'assets/images/default_avatar.png';
+            $otherName = empty($otherName) ? null : $otherName;
+            $lin = empty($lin) ? null : $lin;
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO students (first_name, last_name, other_name, lin, stream_id, profile_photo_path) VALUES (?, ?, ?, ?, ?, ?)"
+            );
+            return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $finalPhotoPath]);
+        } catch (PDOException $e) {
+            // Check for integrity constraint violation (duplicate entry)
+            if ($e->getCode() == 23000) {
+                return false;
+            }
+            // Re-throw other exceptions
+            throw $e;
+        }
     }
 
     public function update($id, $firstName, $lastName, $otherName, $lin, $streamId, $photoPath = null)
     {
-        $otherName = empty($otherName) ? null : $otherName;
-        if ($photoPath) {
-            $stmt = $this->pdo->prepare(
-                "UPDATE students SET first_name = ?, last_name = ?, other_name = ?, lin = ?, stream_id = ?, profile_photo_path = ? WHERE id = ?"
-            );
-            return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $photoPath, $id]);
-        } else {
-            // Don't update the photo if a new one isn't provided
-            $stmt = $this->pdo->prepare(
-                "UPDATE students SET first_name = ?, last_name = ?, other_name = ?, lin = ?, stream_id = ? WHERE id = ?"
-            );
-            return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $id]);
+        try {
+            $otherName = empty($otherName) ? null : $otherName;
+            $lin = empty($lin) ? null : $lin;
+            if ($photoPath) {
+                $stmt = $this->pdo->prepare(
+                    "UPDATE students SET first_name = ?, last_name = ?, other_name = ?, lin = ?, stream_id = ?, profile_photo_path = ? WHERE id = ?"
+                );
+                return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $photoPath, $id]);
+            } else {
+                // Don't update the photo if a new one isn't provided
+                $stmt = $this->pdo->prepare(
+                    "UPDATE students SET first_name = ?, last_name = ?, other_name = ?, lin = ?, stream_id = ? WHERE id = ?"
+                );
+                return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $id]);
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                return false;
+            }
+            throw $e;
         }
     }
 
