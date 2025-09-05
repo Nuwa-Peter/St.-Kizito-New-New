@@ -21,7 +21,8 @@ try {
     $reportGenerator->generateStudentReport($studentId, $batchId);
 } catch (Exception $e) {
     // Log the error if a logging system was in place
-    die("An error occurred while generating the report. Please check the data and try again.");
+    // error_log($e->getMessage());
+    die("An error occurred while generating the report: " . $e->getMessage());
 }
 
 // The generateStudentReport method handles the exit.

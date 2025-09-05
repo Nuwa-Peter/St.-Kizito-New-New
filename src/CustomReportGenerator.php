@@ -61,14 +61,23 @@ class CustomReportGenerator
         );
         $studentStmt->execute([$studentId]);
         $student = $studentStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$student) {
+            throw new Exception("Student with ID {$studentId} not found.");
+        }
 
         $summaryStmt = $this->pdo->prepare("SELECT * FROM student_report_summary WHERE student_id = ? AND batch_id = ?");
         $summaryStmt->execute([$studentId, $batchId]);
         $summary = $summaryStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$summary) {
+            throw new Exception("Report summary not found for this student in this batch. Please calculate the results first.");
+        }
 
         $batchStmt = $this->pdo->prepare("SELECT * FROM report_batch_settings WHERE id = ?");
         $batchStmt->execute([$batchId]);
         $batch = $batchStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$batch) {
+            throw new Exception("Report batch with ID {$batchId} not found.");
+        }
 
         $scoresStmt = $this->pdo->prepare("SELECT s.*, sub.name as subject_name, sub.teacher_initials FROM scores s JOIN subjects sub ON s.subject_id = sub.id WHERE s.student_id = ? AND s.batch_id = ?");
         $scoresStmt->execute([$studentId, $batchId]);
