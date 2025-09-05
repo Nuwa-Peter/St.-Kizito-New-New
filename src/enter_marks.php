@@ -25,11 +25,13 @@ require_once 'ReportBatch.php';
 require_once 'Score.php';
 require_once 'Student.php';
 require_once 'Subject.php';
+require_once 'Stream.php';
 
 $batchModel = new ReportBatch($pdo);
 $scoreModel = new Score($pdo);
 $studentModel = new Student($pdo);
 $subjectModel = new Subject($pdo);
+$streamModel = new Stream($pdo);
 
 $message = '';
 $error = '';
