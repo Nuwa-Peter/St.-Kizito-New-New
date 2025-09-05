@@ -91,9 +91,10 @@ class ReportGenerator
         $pdf->SetFont('helvetica', 'B', 12);
         $pdf->Cell(0, 8, 'STUDENT\'S REPORT', 0, 1, 'C');
 
-        $studentPhoto = '../public/' . ($student['profile_photo_path'] ?? 'assets/images/default_avatar.png');
-        if (file_exists($studentPhoto)) {
-            $pdf->Image($studentPhoto, 170, 50, 25, 30, '', '', 'T', false, 300, '', false, false, 0, false, false, false);
+        // Construct the absolute path to the student's photo
+        $studentPhotoPath = __DIR__ . '/../public/' . $student['profile_photo_path'];
+        if (file_exists($studentPhotoPath)) {
+            $pdf->Image($studentPhotoPath, 170, 50, 25, 30, '', '', 'T', false, 300, '', false, false, 0, false, false, false);
         }
 
         $pdf->SetFont('helvetica', '', 11);

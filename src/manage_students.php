@@ -50,15 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
 
     $photoPath = null;
     // Handle photo processing (prioritize base64 from webcam)
+    $profilePhotosPath = 'profile_photos/';
+    $uploadDir = UPLOADS_PATH . $profilePhotosPath;
+
     if (!empty($_POST['base64_photo'])) {
         $base64img = $_POST['base64_photo'];
-        // The base64 string is in the format: data:image/png;base64,iVBORw0KGgo...
-        // We need to remove the "data:image/png;base64," part
         $imgData = str_replace('data:image/png;base64,', '', $base64img);
         $imgData = str_replace(' ', '+', $imgData);
         $imgData = base64_decode($imgData);
 
-        $uploadDir = 'uploads/profile_photos/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
@@ -66,21 +66,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         $filePath = $uploadDir . $fileName;
 
         if (file_put_contents($filePath, $imgData)) {
-            $photoPath = $filePath;
+            $photoPath = UPLOADS_DIR . $profilePhotosPath . $fileName; // Store relative path
         } else {
             $error = "Failed to save captured photo.";
         }
 
     } elseif (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] == UPLOAD_ERR_OK) {
         // Fallback to standard file upload
-        $uploadDir = 'uploads/profile_photos/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
         $fileName = uniqid() . '-' . basename($_FILES['profile_photo']['name']);
         $targetPath = $uploadDir . $fileName;
         if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $targetPath)) {
-            $photoPath = $targetPath;
+            $photoPath = UPLOADS_DIR . $profilePhotosPath . $fileName; // Store relative path
         } else {
             $error = "Failed to upload profile photo.";
         }
@@ -221,9 +220,11 @@ $allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($students as $student): ?>
+                <?php foreach ($students as $student):
+                    $photoUrl = BASE_URL . '/' . htmlspecialchars($student['profile_photo_path']);
+                ?>
                 <tr>
-                    <td><img src="<?php echo htmlspecialchars($student['profile_photo_path']); ?>" alt="Photo" width="50" class="rounded-circle"></td>
+                    <td><img src="<?php echo $photoUrl; ?>" alt="Photo" width="50" class="rounded-circle"></td>
                     <td><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['other_name'] . ' ' . $student['last_name']); ?></td>
                     <td><?php echo htmlspecialchars($student['lin']); ?></td>
                     <td><?php echo htmlspecialchars($student['class_name']); ?></td>

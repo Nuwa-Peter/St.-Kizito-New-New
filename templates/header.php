@@ -35,6 +35,7 @@
                             echo '<li class="nav-item"><a class="nav-link" href="?page=manage_classes">Classes</a></li>';
                             echo '<li class="nav-item"><a class="nav-link" href="?page=manage_students">Students</a></li>';
                             echo '<li class="nav-item"><a class="nav-link" href="?page=manage_subjects">Subjects</a></li>';
+                            echo '<li class="nav-item"><a class="nav-link" href="?page=enter_marks">Enter Marks</a></li>';
                             echo '<li class="nav-item"><a class="nav-link" href="?page=manage_reports">Reports</a></li>';
                         } elseif ($role == 'admin') {
                             echo '<li class="nav-item"><a class="nav-link" href="?page=manage_classes">Classes</a></li>';

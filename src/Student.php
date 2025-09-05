@@ -57,12 +57,12 @@ class Student
     public function create($firstName, $lastName, $otherName, $lin, $streamId, $photoPath = null)
     {
         // Use a default placeholder if no photo is provided
-        $photoPath = $photoPath ?? 'assets/images/default_avatar.png';
+        $finalPhotoPath = $photoPath ?? 'assets/images/default_avatar.png';
         $otherName = empty($otherName) ? null : $otherName;
         $stmt = $this->pdo->prepare(
             "INSERT INTO students (first_name, last_name, other_name, lin, stream_id, profile_photo_path) VALUES (?, ?, ?, ?, ?, ?)"
         );
-        return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $photoPath]);
+        return $stmt->execute([$firstName, $lastName, $otherName, $lin, $streamId, $finalPhotoPath]);
     }
 
     public function update($id, $firstName, $lastName, $otherName, $lin, $streamId, $photoPath = null)
