@@ -16,11 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $subjectName = $_POST['subject_name'] ?? '';
     $subjectId = $_POST['subject_id'] ?? 0;
+    $teacherInitials = $_POST['teacher_initials'] ?? '';
 
     switch ($action) {
         case 'add_subject':
             if (!empty($subjectName)) {
-                if ($subjectModel->create($subjectName)) {
+                if ($subjectModel->create($subjectName, $teacherInitials)) {
                     $message = "Subject created successfully.";
                 } else {
                     $error = "Failed to create subject. It may already exist.";
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         case 'update_subject':
             if (!empty($subjectName) && !empty($subjectId)) {
-                if ($subjectModel->update($subjectId, $subjectName)) {
+                if ($subjectModel->update($subjectId, $subjectName, $teacherInitials)) {
                     $message = "Subject updated successfully.";
                 } else {
                     $error = "Failed to update subject.";
@@ -75,6 +76,7 @@ $subjects = $subjectModel->getAll();
             <thead>
                 <tr>
                     <th>Subject Name</th>
+                    <th>Teacher Initials</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -82,10 +84,12 @@ $subjects = $subjectModel->getAll();
                 <?php foreach ($subjects as $subject): ?>
                 <tr>
                     <td><?php echo htmlspecialchars($subject['name']); ?></td>
+                    <td><?php echo htmlspecialchars($subject['teacher_initials']); ?></td>
                     <td class="text-end">
                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editSubjectModal"
                             data-subject-id="<?php echo $subject['id']; ?>"
-                            data-subject-name="<?php echo htmlspecialchars($subject['name']); ?>">
+                            data-subject-name="<?php echo htmlspecialchars($subject['name']); ?>"
+                            data-teacher-initials="<?php echo htmlspecialchars($subject['teacher_initials']); ?>">
                             Edit
                         </button>
                         <form action="?page=manage_subjects" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this subject?');">
@@ -116,6 +120,10 @@ $subjects = $subjectModel->getAll();
                         <label class="form-label">Subject Name</label>
                         <input type="text" name="subject_name" class="form-control" required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teacher Initials (e.g., J.D.)</label>
+                        <input type="text" name="teacher_initials" class="form-control" maxlength="10">
+                    </div>
                     <button type="submit" class="btn btn-primary">Save Subject</button>
                 </form>
             </div>
@@ -139,6 +147,10 @@ $subjects = $subjectModel->getAll();
                         <label class="form-label">Subject Name</label>
                         <input type="text" name="subject_name" id="edit_subject_name" class="form-control" required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teacher Initials (e.g., J.D.)</label>
+                        <input type="text" name="teacher_initials" id="edit_teacher_initials" class="form-control" maxlength="10">
+                    </div>
                     <button type="submit" class="btn btn-primary">Update Subject</button>
                 </form>
             </div>
@@ -153,10 +165,12 @@ document.addEventListener('DOMContentLoaded', function () {
         var button = event.relatedTarget;
         var subjectId = button.getAttribute('data-subject-id');
         var subjectName = button.getAttribute('data-subject-name');
+        var teacherInitials = button.getAttribute('data-teacher-initials');
 
         var modal = this;
         modal.querySelector('#edit_subject_id').value = subjectId;
         modal.querySelector('#edit_subject_name').value = subjectName;
+        modal.querySelector('#edit_teacher_initials').value = teacherInitials;
     });
 });
 </script>

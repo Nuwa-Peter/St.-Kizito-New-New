@@ -1,6 +1,4 @@
 <?php
-// Note: The TCPDF library is included via the Composer autoloader.
-// Make sure the autoloader is included in the entry script (e.g., public/index.php)
 
 class ReportGenerator
 {
@@ -12,14 +10,14 @@ class ReportGenerator
     }
 
     /**
-     * Generates a PDF report card for a single student.
+     * Generates a PDF report card for a single student by rendering an HTML template.
      *
      * @param int $studentId
      * @param int $batchId
      */
     public function generateStudentReport($studentId, $batchId)
     {
-        // --- 1. Fetch all data ---
+        // --- 1. Fetch all data required for the template ---
         $studentStmt = $this->pdo->prepare(
             "SELECT s.*, st.name as stream_name, c.name as class_name
              FROM students s
@@ -42,139 +40,53 @@ class ReportGenerator
         $scoresStmt->execute([$studentId, $batchId]);
         $scores = $scoresStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Organize scores for easy access
+        $subjectsStmt = $this->pdo->query("SELECT * FROM subjects ORDER BY id ASC");
+        $subjects = $subjectsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $totalStudentsStmt = $this->pdo->prepare("SELECT COUNT(id) FROM students WHERE stream_id = ?");
+        $totalStudentsStmt->execute([$student['stream_id']]);
+        $totalStudentsInStream = $totalStudentsStmt->fetchColumn();
+
+        // Organize scores for easy access in the template
         $scoresBySubject = [];
         foreach ($scores as $score) {
             $scoresBySubject[$score['subject_name']][$score['exam_type']] = $score['marks'];
         }
 
-        $subjectsStmt = $this->pdo->query("SELECT * FROM subjects ORDER BY id ASC");
-        $subjects = $subjectsStmt->fetchAll(PDO::FETCH_ASSOC);
+        // --- 2. Prepare variables for the template ---
+        $schoolName = 'ST. KIZITO PREPARATORY SEMINARY RWEBISHURI';
+        $schoolMotto = 'MANE NOBISCUM DOMINE';
+        $logoPath = __DIR__ . '/../public/images/logo.png';
+        $studentPhotoPath = __DIR__ . '/../public/' . $student['profile_photo_path'];
 
+        // --- 3. Render the HTML template into a variable ---
+        ob_start();
+        // The 'include' will have access to all variables defined above in this method's scope
+        include 'templates/report_card_template.php';
+        $html = ob_get_clean();
 
-        // --- 2. Create new PDF document ---
-        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-
-        // Set document information
+        // --- 4. Create new PDF document ---
+        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, 'A4', true, 'UTF-8', false);
         $pdf->SetCreator(PDF_CREATOR);
-        $pdf->SetAuthor('St. Kizito Seminary Prep. School');
+        $pdf->SetAuthor($schoolName);
         $pdf->SetTitle('Report Card - ' . $student['first_name'] . ' ' . $student['last_name']);
-        $pdf->SetSubject('Term Report');
-
-        // Remove default header/footer
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-
-        // Set margins
-        $pdf->SetMargins(15, 15, 15);
-        $pdf->SetAutoPageBreak(TRUE, 15);
-
-        // Add a page
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(TRUE, 10);
         $pdf->AddPage();
 
-        // --- 3. Build the PDF content ---
-
-        // School Header
-        $logoPath = '../public/images/logo.png';
-        // Check if logo exists to avoid TCPDF error
-        if (file_exists($logoPath)) {
-            $pdf->Image($logoPath, 15, 10, 25, 0, 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
-        }
-
-        $pdf->SetFont('helvetica', 'B', 16); // Adjusted font size for longer name
-        $pdf->Cell(0, 10, 'ST. KIZITO PREPARATORY SEMINARY RWEBISHURI', 0, 1, 'C');
-        $pdf->SetFont('helvetica', '', 12);
-        $pdf->Cell(0, 8, 'END OF ' . strtoupper($batch['term']) . ' ' . $batch['year'] . ' REPORT', 0, 1, 'C');
-        $pdf->Ln(15);
-
-        // Student Information
-        $pdf->SetFont('helvetica', 'B', 12);
-        $pdf->Cell(0, 8, 'STUDENT\'S REPORT', 0, 1, 'C');
-
-        // Construct the absolute path to the student's photo
-        $studentPhotoPath = __DIR__ . '/../public/' . $student['profile_photo_path'];
-        if (file_exists($studentPhotoPath)) {
-            $pdf->Image($studentPhotoPath, 170, 50, 25, 30, '', '', 'T', false, 300, '', false, false, 0, false, false, false);
-        }
-
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(30, 7, 'NAME:', 0, 0);
-        $pdf->Cell(0, 7, strtoupper($student['first_name'] . ' ' . $student['last_name']), 0, 1);
-        $pdf->Cell(30, 7, 'CLASS:', 0, 0);
-        $pdf->Cell(0, 7, $student['class_name'] . ' ' . $student['stream_name'], 0, 1);
-        $pdf->Ln(5);
-
-        // Scores Table
-        $html = '<table border="1" cellpadding="4">
-            <tr style="background-color:#D3D3D3; text-align:center; font-weight:bold;">
-                <th width="25%">SUBJECT</th>
-                <th width="15%">B.O.T (100)</th>
-                <th width="15%">M.O.T (100)</th>
-                <th width="15%">E.O.T (100)</th>
-                <th width="15%">GRADE</th>
-                <th width="15%">REMARK</th>
-            </tr>';
-
-        foreach ($subjects as $subject) {
-            $eot_mark = $scoresBySubject[$subject['name']]['EOT'] ?? null;
-            $grade = $eot_mark !== null ? $this->getGradeFromMark($eot_mark) : '-';
-            $remark = $eot_mark !== null ? $this->getRemarkFromGrade($grade) : '-';
-
-            $html .= '<tr>
-                <td>' . htmlspecialchars($subject['name']) . '</td>
-                <td align="center">' . ($scoresBySubject[$subject['name']]['BOT'] ?? '-') . '</td>
-                <td align="center">' . ($scoresBySubject[$subject['name']]['MOT'] ?? '-') . '</td>
-                <td align="center">' . ($eot_mark ?? '-') . '</td>
-                <td align="center">' . $grade . '</td>
-                <td>' . $remark . '</td>
-            </tr>';
-        }
-        $html .= '</table>';
+        // --- 5. Write the HTML to the PDF ---
         $pdf->writeHTML($html, true, false, true, false, '');
-        $pdf->Ln(5);
 
-        // Summary Section
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(40, 7, 'Total Marks:', 0, 0);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(50, 7, $summary['total_marks'] . ' / ' . (count($subjects) * 100), 0, 0);
-
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(40, 7, 'Aggregates:', 0, 0);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(0, 7, $summary['aggregate_points'], 0, 1);
-
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(40, 7, 'Division:', 0, 0);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(50, 7, $summary['division'], 0, 0);
-
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(40, 7, 'Position:', 0, 0);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(0, 7, $summary['position_in_stream'] . ' out of ' . count($this->pdo->query("SELECT id FROM students WHERE stream_id = " . $student['stream_id'])->fetchAll()), 0, 1);
-        $pdf->Ln(5);
-
-        // Remarks
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, 7, 'Class Teacher\'s Remarks:', 0, 1);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->MultiCell(0, 10, $summary['class_teacher_remarks'], 0, 'L');
-        $pdf->Ln(2);
-
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, 7, 'Headteacher\'s Remarks:', 0, 1);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->MultiCell(0, 10, $summary['headteacher_remarks'], 0, 'L');
-        $pdf->Ln(10);
-
-        $pdf->Cell(0, 7, 'Next term begins on: ............................................', 0, 1);
-
-        // --- 4. Output the PDF ---
+        // --- 6. Output the PDF ---
         $pdf->Output('report_card_' . $student['id'] . '.pdf', 'I');
     }
 
-    private function getGradeFromMark($mark)
+    // These helper methods are now used inside the template, so they need to be public
+    // or the logic needs to be moved into the template itself.
+    // For simplicity, we'll make them public to be accessible via $this-> in the template.
+    public function getGradeFromMark($mark)
     {
         if ($mark >= 90) return 'D1';
         if ($mark >= 80) return 'D2';
@@ -187,7 +99,7 @@ class ReportGenerator
         return 'F9';
     }
 
-    private function getRemarkFromGrade($grade)
+    public function getRemarkFromGrade($grade)
     {
         switch ($grade) {
             case 'D1': return 'Excellent';

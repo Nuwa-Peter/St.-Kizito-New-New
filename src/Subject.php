@@ -22,16 +22,18 @@ class Subject
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function create($name)
+    public function create($name, $initials = null)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO subjects (name) VALUES (?)");
-        return $stmt->execute([$name]);
+        $initials = empty($initials) ? null : $initials;
+        $stmt = $this->pdo->prepare("INSERT INTO subjects (name, teacher_initials) VALUES (?, ?)");
+        return $stmt->execute([$name, $initials]);
     }
 
-    public function update($id, $name)
+    public function update($id, $name, $initials = null)
     {
-        $stmt = $this->pdo->prepare("UPDATE subjects SET name = ? WHERE id = ?");
-        return $stmt->execute([$name, $id]);
+        $initials = empty($initials) ? null : $initials;
+        $stmt = $this->pdo->prepare("UPDATE subjects SET name = ?, teacher_initials = ? WHERE id = ?");
+        return $stmt->execute([$name, $initials, $id]);
     }
 
     public function delete($id)

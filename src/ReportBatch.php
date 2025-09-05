@@ -58,4 +58,16 @@ class ReportBatch
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    public function updateDates($batchId, $termEndDate, $nextTermBeginDate)
+    {
+        // Use null for empty date strings
+        $termEndDate = empty($termEndDate) ? null : $termEndDate;
+        $nextTermBeginDate = empty($nextTermBeginDate) ? null : $nextTermBeginDate;
+
+        $stmt = $this->pdo->prepare(
+            "UPDATE report_batch_settings SET term_end_date = ?, next_term_begin_date = ? WHERE id = ?"
+        );
+        return $stmt->execute([$termEndDate, $nextTermBeginDate, $batchId]);
+    }
 }

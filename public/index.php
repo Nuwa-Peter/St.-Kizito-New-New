@@ -22,7 +22,8 @@ require_once '../src/database.php';
 $page = $_GET['page'] ?? 'dashboard';
 
 // For raw pages like PDF generation or AJAX, we don't include the layout.
-if ($page === 'generate_pdf' || $page === 'ajax_get_streams') {
+$rawPages = ['generate_pdf', 'ajax_get_streams', 'download_marks_template'];
+if (in_array($page, $rawPages)) {
     require_once '../src/' . $page . '.php';
 } else {
     // Include header
