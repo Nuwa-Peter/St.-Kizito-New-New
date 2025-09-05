@@ -101,12 +101,15 @@ if ($year && $term && $stream_id_to_use) {
             <?php if ($user_role === 'superadmin'): ?>
                 <div class="col-md-4">
                     <label for="stream_id_selector" class="form-label">Select Stream</label>
-                    <select name="stream_id_selector" id="stream_id_selector" class="form-select" required>
-                        <option value="">-- Select a Stream --</option>
-                        <?php
-                        $allStreams = $streamModel->getAllWithClass();
-                        foreach ($allStreams as $stream):
-                        ?>
+                    <?php
+                    $allStreams = $streamModel->getAllWithClass();
+                    $hasStreams = !empty($allStreams);
+                    ?>
+                    <select name="stream_id_selector" id="stream_id_selector" class="form-select" required <?php if (!$hasStreams) echo 'disabled'; ?>>
+                        <option value="">
+                            <?php echo $hasStreams ? '-- Select a Stream --' : 'No streams found. Please create one.'; ?>
+                        </option>
+                        <?php foreach ($allStreams as $stream): ?>
                         <option value="<?php echo $stream['id']; ?>" <?php echo (($_GET['stream_id_selector'] ?? '') == $stream['id']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($stream['class_name'] . ' - ' . $stream['stream_name']); ?>
                         </option>
@@ -115,7 +118,7 @@ if ($year && $term && $stream_id_to_use) {
                 </div>
                 <div class="col-md-3">
                     <label for="year" class="form-label">Academic Year</label>
-                    <select name="year" id="year" class="form-select">
+                    <select name="year" id="year" class="form-select" <?php if (!$hasStreams) echo 'disabled'; ?>>
                         <?php for ($y = date('Y'); $y >= 2020; $y--): ?>
                             <option value="<?php echo $y; ?>" <?php echo ($year == $y) ? 'selected' : ''; ?>><?php echo $y; ?></option>
                         <?php endfor; ?>
@@ -123,7 +126,7 @@ if ($year && $term && $stream_id_to_use) {
                 </div>
                 <div class="col-md-3">
                     <label for="term" class="form-label">Term</label>
-                    <select name="term" id="term" class="form-select" required>
+                    <select name="term" id="term" class="form-select" required <?php if (!$hasStreams) echo 'disabled'; ?>>
                         <option value="">-- Select Term --</option>
                         <option value="Term 1" <?php echo ($term == 'Term 1') ? 'selected' : ''; ?>>Term 1</option>
                         <option value="Term 2" <?php echo ($term == 'Term 2') ? 'selected' : ''; ?>>Term 2</option>
@@ -131,7 +134,7 @@ if ($year && $term && $stream_id_to_use) {
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Load</button>
+                    <button type="submit" class="btn btn-primary w-100" <?php if (!$hasStreams) echo 'disabled'; ?>>Load</button>
                 </div>
             <?php else: ?>
                 <div class="col-md-5">
