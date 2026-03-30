@@ -1,53 +1,54 @@
 /* Custom styles for St. Kizito Report Card System */
 :root {
-    --coffee-brown: #6f4e37;
-    --light-brown: #a0806c;
+    --primary-green: #2e7d32;
+    --primary-purple: #6a1b9a;
+    --light-green: #4caf50;
     --dark-text: #3b2f2f;
-    --bs-primary: var(--coffee-brown);
-    --bs-primary-rgb: 111, 78, 55;
+    --bs-primary: var(--primary-green);
+    --bs-primary-rgb: 46, 125, 50;
 }
 
 body {
-    background-color: #fdfaf6;
+    background-color: #f1f8e9; /* Very light green background */
     color: var(--dark-text);
 }
 
 .navbar-dark.bg-dark {
-    background-color: var(--coffee-brown) !important;
+    background-color: var(--primary-green) !important;
 }
 
 .btn-primary {
-    background-color: var(--coffee-brown);
-    border-color: var(--coffee-brown);
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
 }
 
 .btn-primary:hover {
-    background-color: var(--light-brown);
-    border-color: var(--light-brown);
+    background-color: var(--light-green);
+    border-color: var(--light-green);
 }
 
 .btn-check:focus+.btn-primary, .btn-primary:focus {
-    background-color: var(--light-brown);
-    border-color: var(--light-brown);
-    box-shadow: 0 0 0 0.25rem rgba(111, 78, 55, 0.5);
+    background-color: var(--light-green);
+    border-color: var(--light-green);
+    box-shadow: 0 0 0 0.25rem rgba(46, 125, 50, 0.5);
 }
 
 .btn-check:checked+.btn-primary, .btn-check:active+.btn-primary, .btn-primary:active, .btn-primary.active, .show>.btn-primary.dropdown-toggle {
-    background-color: var(--light-brown);
-    border-color: var(--light-brown);
+    background-color: var(--light-green);
+    border-color: var(--light-green);
 }
 
 .card-header {
-    background-color: rgba(111, 78, 55, 0.05);
+    background-color: rgba(46, 125, 50, 0.05);
     font-weight: bold;
 }
 
 a {
-    color: var(--coffee-brown);
+    color: var(--primary-purple);
 }
 
 a:hover {
-    color: var(--light-brown);
+    color: var(--primary-green);
 }
 
 main {
@@ -81,4 +82,12 @@ main {
     border: 1px solid #ddd;
     border-radius: 50%;
     margin-top: 10px;
+}
+
+/* Mobile first adjustments */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 0.9rem;
+        white-space: normal;
+    }
 }

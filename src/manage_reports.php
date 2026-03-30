@@ -72,7 +72,7 @@ $batches = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php if ($error): ?><div class="alert alert-danger" role="alert"><?php echo $error; ?></div><?php endif; ?>
 
 <div class="card">
-    <div class="card-body">
+    <div class="card-body table-responsive">
         <table class="table table-striped">
             <thead>
                 <tr>
