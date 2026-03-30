@@ -207,7 +207,7 @@ $allStreams = $streamModel->getAllWithClass(); // Fetch once for all dropdowns
 </div>
 
 <div class="card">
-    <div class="card-body table-responsive">
+    <div class="card-body">
         <table class="table table-striped">
             <thead>
                 <tr>

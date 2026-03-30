@@ -31,7 +31,7 @@ $currentStreamName = $streamInfo ? ($streamInfo['class_name'] . ' - ' . $streamI
 <p>This is the official roster for your assigned stream.</p>
 
 <div class="card">
-    <div class="card-body table-responsive">
+    <div class="card-body">
         <table class="table table-striped">
             <thead>
                 <tr>
